@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Smart Traffic Control System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════════════════
+   CSS CUSTOM PROPERTIES — Single source of truth for the palette
+═══════════════════════════════════════════════════════════════ */
+    :root {
+      --bg-deep: #06090f;
+      --bg-panel: #090e1a;
+      --bg-card: #0c1422;
+      --border: #121d30;
+      --text: #b8cce0;
+      --text-dim: #304560;
+      --accent-y: #f0b429;
+      --accent-b: #38bdf8;
+      --accent-p: #a78bfa;
+      --accent-r: #f87171;
+      --accent-g: #34d399;
+      --road: #2e2e2e;
+      --grass: #182e0e;
+      --kerb: #7a6858;
+      --font-mono: 'Share Tech Mono', monospace;
+      --font-ui: 'Rajdhani', sans-serif;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    html {
+      height: 100%;
+    }
+
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg-deep);
+      color: var(--text);
+      display: flex;
+    }
+
+    /* ═══════════════════════════════════════
+   LEFT CONTROL PANEL
+═══════════════════════════════════════ */
+    #panel {
+      width: 320px;
+      flex-shrink: 0;
+      background: var(--bg-panel);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-right: 1px solid var(--border);
+      height: 100vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 24px 20px;
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+      z-index: 100;
+    }
+
+    /* Panel header */
+    .p-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 11px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2px;
+    }
+
+    .p-header-icon {
+      font-size: 1.4em
+    }
+
+    .p-header h2 {
+      font-family: var(--font-ui);
+      font-size: .92em;
+      font-weight: 700;
+      color: var(--accent-y);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+
+    .p-header h2 span {
+      display: block;
+      font-size: .65em;
+      font-weight: 500;
+      color: var(--text-dim);
+      letter-spacing: .07em;
+    }
+
+    /* Back button styling */
+    .back-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 1.1em;
+      font-weight: bold;
+      padding: 6px 10px;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+    }
+
+    .back-btn:hover {
+      background: var(--accent-r);
+      border-color: var(--accent-r);
+      color: white;
+      transform: scale(1.05);
+    }
+
+    .back-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* Input groups */
+    .ig {
+      background: var(--bg-card);
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      border-left: 4px solid #334155;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .ig.h {
+      border-left-color: var(--accent-b)
+    }
+
+    .ig.v {
+      border-left-color: var(--accent-p)
+    }
+
+    .ig.e {
+      border-left-color: var(--accent-r)
+    }
+
+    .ig label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+
+    input[type=number],
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--text);
+      font-size: 1rem;
+      font-family: var(--font-mono);
+      transition: all 0.2s ease;
+    }
+
+    input[type=number]:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent-b);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, .1);
+    }
+
+    /* Density bar */
+    .dbar-wrap {
+      height: 3px;
+      background: var(--bg-deep);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 7px;
+    }
+
+    .dbar {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1), background .4s;
+    }
+
+    /* Buttons */
+    .btn {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-family: var(--font-ui);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .btn:hover {
+      filter: brightness(1.15);
+      transform: translateY(-1px)
+    }
+
+    .btn:active {
+      transform: translateY(0)
+    }
+
+    #spawnBtn {
+      background: linear-gradient(135deg, #064e3b, #059669)
+    }
+
+    #toggleBtn {
+      background: linear-gradient(135deg, #78350f, #d97706)
+    }
+
+    #clearBtn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-size: .78em;
+    }
+
+    /* Metrics card */
+    .metrics {
+      background: var(--bg-card);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-top: auto;
+      min-height: 180px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+
+    .metrics-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 12px;
+    }
+
+    /* Big countdown timer */
+    .timer-big {
+      font-family: var(--font-mono);
+      font-size: 3rem;
+      text-align: center;
+      color: var(--accent-y);
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+      padding: 10px 0;
+      margin-bottom: 16px;
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 30px rgba(251, 191, 36, 0.4);
+      border: 1px inset rgba(255, 255, 255, 0.05);
+    }
+
+    #phaseBadge {
+      display: block;
+      text-align: center;
+      padding: 4px 8px;
+      border-radius: 20px;
+      font-size: .67em;
+      font-weight: 700;
+      letter-spacing: .07em;
+      margin-bottom: 8px;
+      transition: background .4s, color .4s;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .78em;
+    }
+
+    .stat-row:last-child {
+      border-bottom: none
+    }
+
+    .stat-label {
+      color: var(--text-dim)
+    }
+
+    .stat-val {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--accent-g);
+      font-size: .9em;
+      transition: color .4s ease;
+    }
+
+    /* ═══════════════════════════════════════
+   MAP AREA
+═══════════════════════════════════════ */
+    #map-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(ellipse at center, #0b1320 0%, var(--bg-deep) 100%);
+      overflow: hidden;
+    }
+
+    #map {
+      width: 780px;
+      height: 780px;
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow:
+        0 0 100px rgba(0, 0, 0, .98),
+        0 0 40px rgba(56, 189, 248, .03),
+        inset 0 0 0 1px rgba(255, 255, 255, .03);
+    }
+
+    /* Ground / grass */
+    #map-bg {
+      position: absolute;
+      inset: 0;
+      background: var(--grass);
+      z-index: 0;
+    }
+
+    /* City block grid lines on grass */
+    #map-bg::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 77px, rgba(0, 0, 0, .2) 77px, rgba(0, 0, 0, .2) 78px),
+        repeating-linear-gradient(90deg, transparent, transparent 77px, rgba(0, 0, 0, .2) 77px, rgba(0, 0, 0, .2) 78px);
+    }
+
+    /* Subtle grass texture */
+    #map-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: .2;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* Sidewalk kerbs */
+    .sw-h {
+      position: absolute;
+      width: 100%;
+      height: 16px;
+      background: var(--kerb);
+      z-index: 1
+    }
+
+    .sw-h.top {
+      top: 296px
+    }
+
+    .sw-h.bot {
+      top: 468px
+    }
+
+    .sw-v {
+      position: absolute;
+      width: 16px;
+      height: 100%;
+      background: var(--kerb);
+      z-index: 1
+    }
+
+    .sw-v.lft {
+      left: 296px
+    }
+
+    .sw-v.rgt {
+      left: 468px
+    }
+
+    /* Roads */
+    .road-h {
+      position: absolute;
+      top: 312px;
+      left: 0;
+      width: 100%;
+      height: 156px;
+      background: var(--road);
+      z-index: 2;
+    }
+
+    .road-v {
+      position: absolute;
+      left: 312px;
+      top: 0;
+      width: 156px;
+      height: 100%;
+      background: var(--road);
+      z-index: 2;
+    }
+
+    /* Tarmac texture */
+    .road-h::after,
+    .road-v::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: .3;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23t)' opacity='0.06'/%3E%3C/svg%3E");
+    }
+
+    /* Intersection */
+    .intersection {
+      position: absolute;
+      top: 312px;
+      left: 312px;
+      width: 156px;
+      height: 156px;
+      background: var(--road);
+      z-index: 3;
+    }
+
+    /* Yellow box marking on intersection */
+    .intersection::before {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border: 2px solid rgba(255, 200, 0, .14);
+      border-radius: 2px;
+    }
+
+    .intersection::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(45deg, transparent, transparent 14px,
+          rgba(255, 200, 0, .05) 14px, rgba(255, 200, 0, .05) 15px);
+    }
+
+    /* Lane centre dashes */
+    .lane-dash-h {
+      position: absolute;
+      top: 390px;
+      left: 0;
+      right: 0;
+      height: 0;
+      z-index: 4;
+      border-top: 3px dashed rgba(255, 215, 30, .48);
+    }
+
+    .lane-dash-v {
+      position: absolute;
+      left: 390px;
+      top: 0;
+      bottom: 0;
+      width: 0;
+      z-index: 4;
+      border-left: 3px dashed rgba(255, 215, 30, .48);
+    }
+
+    /* Zebra crossings */
+    .zebra {
+      position: absolute;
+      z-index: 4;
+      display: flex
+    }
+
+    .zebra.zh-l {
+      top: 312px;
+      left: 280px;
+      width: 20px;
+      height: 78px;
+      flex-direction: column
+    }
+
+    .zebra.zh-r {
+      top: 390px;
+      left: 468px;
+      width: 20px;
+      height: 78px;
+      flex-direction: column
+    }
+
+    .zebra.zv-t {
+      left: 312px;
+      top: 280px;
+      height: 20px;
+      width: 78px
+    }
+
+    .zebra.zv-b {
+      left: 390px;
+      top: 468px;
+      height: 20px;
+      width: 78px
+    }
+
+    .zs {
+      flex: 1;
+      background: rgba(255, 255, 255, .58)
+    }
+
+    .zg {
+      flex: 1;
+      background: transparent
+    }
+
+    /* Stop lines */
+    .sl {
+      position: absolute;
+      background: rgba(255, 255, 255, .85);
+      z-index: 5
+    }
+
+    .sl-hl {
+      top: 312px;
+      left: 299px;
+      width: 5px;
+      height: 78px
+    }
+
+    .sl-hr {
+      top: 390px;
+      left: 468px;
+      width: 5px;
+      height: 78px
+    }
+
+    .sl-vt {
+      left: 312px;
+      top: 299px;
+      width: 78px;
+      height: 5px
+    }
+
+    .sl-vb {
+      left: 390px;
+      top: 468px;
+      width: 78px;
+      height: 5px
+    }
+
+    /* Corner fillets */
+    .corner {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: var(--kerb);
+      z-index: 6
+    }
+
+    .c-tl {
+      top: 296px;
+      left: 296px
+    }
+
+    .c-tr {
+      top: 296px;
+      left: 468px
+    }
+
+    .c-bl {
+      top: 468px;
+      left: 296px
+    }
+
+    .c-br {
+      top: 468px;
+      left: 468px
+    }
+
+    /* ─────────────────────────────────────────────────────────
+   CITY BLOCK BUILDINGS
+   These are RECTANGULAR building footprints — NOT round.
+   They replace the old .tree (circular green dot) elements.
+   Placed in the 4 grass quadrants outside the road network.
+   ──────────────────────────────────────────────────────── */
+    .blk {
+      position: absolute;
+      z-index: 1;
+      border-radius: 3px;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .5), 0 3px 8px rgba(0, 0, 0, .4);
+    }
+
+    /* Window grid pattern on building rooftops */
+    .blk::after {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      opacity: .3;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 5px, rgba(255, 255, 255, .18) 5px, rgba(255, 255, 255, .18) 6px),
+        repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(255, 255, 255, .18) 5px, rgba(255, 255, 255, .18) 6px);
+    }
+
+    /* Traffic light housings */
+    .light-box {
+      position: absolute;
+      background: #0e0e0e;
+      padding: 5px 6px;
+      border-radius: 8px;
+      border: 2px solid #080808;
+      display: flex;
+      gap: 6px;
+      z-index: 11;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .95), inset 0 1px 0 rgba(255, 255, 255, .04);
+    }
+
+    .bulb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #181818;
+      transition: background .3s, box-shadow .3s;
+    }
+
+    /*
+  CRITICAL: .green-on and .red-on are ONLY applied to .bulb elements
+  inside .light-box housings — never to free-floating map elements.
+  This ensures NO green dots appear floating on the map.
+*/
+    .green-on {
+      background: #15803d !important;
+      box-shadow: 0 0 10px #22c55e, 0 0 22px rgba(34, 197, 94, .6) !important;
+    }
+
+    .red-on {
+      background: #b91c1c !important;
+      box-shadow: 0 0 10px #ef4444, 0 0 22px rgba(239, 68, 68, .6) !important;
+    }
+
+    /* Traffic light positions around the intersection */
+    /* H-road lights (horizontal row: red | green) */
+    #lh1 {
+      top: 247px;
+      left: 238px;
+      flex-direction: row
+    }
+
+    /* top-left, for W→E traffic */
+    #lh2 {
+      top: 504px;
+      left: 486px;
+      flex-direction: row
+    }
+
+    /* bot-right, for E→W traffic */
+    /* V-road lights (vertical col: red / green) */
+    #lv1 {
+      top: 238px;
+      left: 492px;
+      flex-direction: column
+    }
+
+    /* top-right, for N→S traffic */
+    #lv2 {
+      top: 490px;
+      left: 256px;
+      flex-direction: column
+    }
+
+    /* bot-left, for S→N traffic */
+
+    /* Vehicles — rectangular SVG wrappers, NOT circles */
+    .vehicle {
+      position: absolute;
+      z-index: 12;
+      pointer-events: none;
+      will-change: left, top;
+    }
+
+    .vehicle.emer {
+      z-index: 16;
+      animation: emerPulse .45s infinite alternate;
+    }
+
+    @keyframes emerPulse {
+      0% {
+        filter: drop-shadow(0 0 3px #ef4444)
+      }
+
+      50% {
+        filter: drop-shadow(0 0 5px #3b82f6) drop-shadow(0 0 10px rgba(59, 130, 246, .5))
+      }
+
+      100% {
+        filter: drop-shadow(0 0 6px #ef4444) drop-shadow(0 0 14px rgba(239, 68, 68, .7))
+      }
+    }
+
+    /* Emergency alert banner */
+    #emer-alert {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #991b1b, #ef4444);
+      color: #fff;
+      font-weight: 700;
+      font-size: .78em;
+      font-family: var(--font-ui);
+      letter-spacing: .1em;
+      padding: 7px 22px;
+      border-radius: 24px;
+      z-index: 100;
+      display: none;
+      white-space: nowrap;
+      box-shadow: 0 0 30px rgba(239, 68, 68, .85);
+      animation: emerBlink .55s infinite alternate;
+      text-transform: uppercase;
+    }
+
+    @keyframes emerBlink {
+      from {
+        opacity: 1
+      }
+
+      to {
+        opacity: .45
+      }
+    }
+
+    /* Phase switch flash overlay */
+    #phase-flash {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+      border-radius: 14px;
+      opacity: 0;
+      transition: opacity .15s;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════════════════════
+     CONTROL PANEL
+═══════════════════════════════════════════════ -->
+  <div id="panel">
+    <div class="p-header">
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+        <a href="/" style="text-decoration: none;">
+          <button class="back-btn" title="Back to Homepage">
+            <span style="font-size: 1.2em;">🔙</span>
+          </button>
+        </a>
+        <span class="p-header-icon">🚗🚥</span>
+        <h2>Traffic Control<span>Simulation System</span></h2>
+      </div>
+    </div>
+
+    <!-- Horizontal road vehicle count -->
+    <div class="ig h">
+      <label>↔ ECR ROAD — W ↔ E</label>
+      <input type="number" id="h_val" value="6" min="0" max="20">
+      <div class="dbar-wrap">
+        <div class="dbar" id="h-bar" style="width:30%;background:var(--accent-b)"></div>
+      </div>
+    </div>
+
+    <!-- Vertical road vehicle count -->
+    <div class="ig v">
+      <label>↕ OMR ROAD — N ↔ S</label>
+      <input type="number" id="v_val" value="4" min="0" max="20">
+      <div class="dbar-wrap">
+        <div class="dbar" id="v-bar" style="width:20%;background:var(--accent-p)"></div>
+      </div>
+    </div>
+
+    <!-- Emergency override -->
+    <div class="ig e">
+      <label>🚨 Emergency Vehicle</label>
+      <select id="emer">
+        <option value="0">None</option>
+        <option value="1">Lane 1 (W → E)</option>
+        <option value="2">Lane 2 (E → W)</option>
+        <option value="3">Lane 3 (N → S)</option>
+        <option value="4">Lane 4 (S → N)</option>
+      </select>
+    </div>
+
+    <button class="btn" id="spawnBtn" onclick="UI.spawn()">🚗 Spawn Vehicles</button>
+    <button class="btn" id="toggleBtn" onclick="UI.toggleSignals()">▶ Start Signals</button>
+    <button class="btn" id="clearBtn" onclick="UI.clearAll()">✕ Clear All Vehicles</button>
+
+    <!-- Live metrics -->
+    <div class="metrics">
+      <div class="metrics-title">◈ Live Data</div>
+      <div class="timer-big"><span id="timerVal">--</span>s</div>
+      <span id="phaseBadge" style="background:var(--bg-deep);color:var(--text-dim)">SIGNALS OFF</span>
+      <div class="stat-row" style="margin-top:6px">
+        <span class="stat-label">H Road</span>
+        <span class="stat-val" id="hCount">0 cars</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">V Road</span>
+        <span class="stat-val" id="vCount">0 cars</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Avg Speed</span>
+        <span class="stat-val" id="speedVal">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Status</span>
+        <span class="stat-val" id="congVal">—</span>
+      </div>
+
+    </div>
+  </div><!-- /#panel -->
+
+
+  <!-- ═══════════════════════════════════════════════
+     MAP
+═══════════════════════════════════════════════ -->
+  <div id="map-container">
+    <div id="map">
+
+      <!-- Phase flash overlay (flashes on green↔red switch) -->
+      <div id="phase-flash"></div>
+
+      <!-- Ground -->
+      <div id="map-bg"></div>
+
+      <!-- Sidewalk kerbs (pavement strips flanking roads) -->
+      <div class="sw-h top"></div>
+      <div class="sw-h bot"></div>
+      <div class="sw-v lft"></div>
+      <div class="sw-v rgt"></div>
+
+      <!-- Road surfaces -->
+      <div class="road-h"></div>
+      <div class="road-v"></div>
+      <div class="intersection"></div>
+
+      <!-- Lane centre dividers (yellow dashes) -->
+      <div class="lane-dash-h"></div>
+      <div class="lane-dash-v"></div>
+
+      <!-- Zebra crossings — JS fills stripe children -->
+      <div class="zebra zh-l" id="zhl"></div>
+      <div class="zebra zh-r" id="zhr"></div>
+      <div class="zebra zv-t" id="zvt"></div>
+      <div class="zebra zv-b" id="zvb"></div>
+
+      <!-- Stop lines -->
+      <div class="sl sl-hl"></div>
+      <div class="sl sl-hr"></div>
+      <div class="sl sl-vt"></div>
+      <div class="sl sl-vb"></div>
+
+      <!-- Corner fillets -->
+      <div class="corner c-tl"></div>
+      <div class="corner c-tr"></div>
+      <div class="corner c-bl"></div>
+      <div class="corner c-br"></div>
+
+      <!--
+    CITY BLOCK BUILDINGS — rectangular rooftops on grass.
+    These REPLACE the old circular .tree elements that appeared as green dots.
+    Positioned in the 4 grass quadrants (outside road area).
+    Road area: H (y:312-468), V (x:312-468), so quadrants are:
+      TL: x<296, y<296  |  TR: x>484, y<296
+      BL: x<296, y>484  |  BR: x>484, y>484
+  -->
+
+      <!-- TOP-LEFT quadrant buildings -->
+      <div class="blk" style="top:18px;left:18px;width:82px;height:56px;background:#1e2d14"></div>
+      <div class="blk" style="top:20px;left:118px;width:52px;height:42px;background:#192610"></div>
+      <div class="blk" style="top:20px;left:196px;width:68px;height:50px;background:#223018"></div>
+      <div class="blk" style="top:95px;left:18px;width:56px;height:72px;background:#1c2912"></div>
+      <div class="blk" style="top:98px;left:90px;width:74px;height:46px;background:#1e2d14"></div>
+      <div class="blk" style="top:96px;left:192px;width:60px;height:54px;background:#192610"></div>
+      <div class="blk" style="top:186px;left:18px;width:68px;height:52px;background:#223018"></div>
+      <div class="blk" style="top:185px;left:108px;width:46px;height:58px;background:#1c2912"></div>
+      <div class="blk" style="top:190px;left:178px;width:80px;height:60px;background:#1e2d14"></div>
+
+      <!-- TOP-RIGHT quadrant buildings -->
+      <div class="blk" style="top:18px;left:492px;width:84px;height:58px;background:#1c2912"></div>
+      <div class="blk" style="top:20px;left:595px;width:56px;height:44px;background:#1e2d14"></div>
+      <div class="blk" style="top:18px;left:670px;width:92px;height:66px;background:#192610"></div>
+      <div class="blk" style="top:100px;left:492px;width:66px;height:52px;background:#223018"></div>
+      <div class="blk" style="top:98px;left:578px;width:82px;height:56px;background:#1c2912"></div>
+      <div class="blk" style="top:102px;left:682px;width:78px;height:52px;background:#1e2d14"></div>
+      <div class="blk" style="top:186px;left:492px;width:52px;height:68px;background:#192610"></div>
+      <div class="blk" style="top:188px;left:560px;width:72px;height:56px;background:#223018"></div>
+      <div class="blk" style="top:184px;left:652px;width:94px;height:72px;background:#1c2912"></div>
+
+      <!-- BOTTOM-LEFT quadrant buildings -->
+      <div class="blk" style="top:494px;left:18px;width:78px;height:56px;background:#192610"></div>
+      <div class="blk" style="top:496px;left:110px;width:56px;height:46px;background:#1e2d14"></div>
+      <div class="blk" style="top:494px;left:184px;width:68px;height:52px;background:#223018"></div>
+      <div class="blk" style="top:574px;left:18px;width:62px;height:72px;background:#1c2912"></div>
+      <div class="blk" style="top:578px;left:98px;width:78px;height:56px;background:#1e2d14"></div>
+      <div class="blk" style="top:572px;left:196px;width:56px;height:72px;background:#192610"></div>
+      <div class="blk" style="top:668px;left:18px;width:92px;height:82px;background:#223018"></div>
+      <div class="blk" style="top:672px;left:128px;width:66px;height:72px;background:#1c2912"></div>
+      <div class="blk" style="top:664px;left:212px;width:56px;height:92px;background:#1e2d14"></div>
+
+      <!-- BOTTOM-RIGHT quadrant buildings -->
+      <div class="blk" style="top:494px;left:492px;width:82px;height:56px;background:#223018"></div>
+      <div class="blk" style="top:496px;left:590px;width:56px;height:46px;background:#192610"></div>
+      <div class="blk" style="top:494px;left:662px;width:98px;height:56px;background:#1c2912"></div>
+      <div class="blk" style="top:576px;left:492px;width:66px;height:66px;background:#1e2d14"></div>
+      <div class="blk" style="top:578px;left:572px;width:82px;height:56px;background:#223018"></div>
+      <div class="blk" style="top:574px;left:674px;width:88px;height:66px;background:#192610"></div>
+      <div class="blk" style="top:666px;left:492px;width:92px;height:92px;background:#1c2912"></div>
+      <div class="blk" style="top:668px;left:600px;width:66px;height:82px;background:#1e2d14"></div>
+      <div class="blk" style="top:670px;left:684px;width:78px;height:82px;background:#223018"></div>
+
+      <!--
+    TRAFFIC LIGHTS — 4 housings positioned at each corner of the intersection.
+    Each housing contains exactly 2 bulbs: [red, green].
+    H-road lights use row layout (red left, green right).
+    V-road lights use column layout (red top, green bottom).
+  -->
+      <div id="lh1" class="light-box">
+        <div class="bulb h-red red-on"></div>
+        <div class="bulb h-green"></div>
+      </div>
+      <div id="lh2" class="light-box">
+        <div class="bulb h-red red-on"></div>
+        <div class="bulb h-green"></div>
+      </div>
+      <div id="lv1" class="light-box">
+        <div class="bulb v-red red-on"></div>
+        <div class="bulb v-green"></div>
+      </div>
+      <div id="lv2" class="light-box">
+        <div class="bulb v-red red-on"></div>
+        <div class="bulb v-green"></div>
+      </div>
+
+      <!-- Emergency alert banner — hidden by default -->
+      <div id="emer-alert">🚨 EMERGENCY — PRIORITY OVERRIDE ACTIVE</div>
+
+    </div><!-- /#map -->
+  </div><!-- /#map-container -->
+
+
+  <script>
+    'use strict';
+    /* ════════════════════════════════════════════════════════════════════
+       ████████████████████████████████████████████████████████████████████
+       MODULE A — SVG VEHICLE RENDERER
+       Generates directional top-down car SVGs (50×26 H, 26×50 V).
+       Each lane direction has correct headlight/taillight placement.
+       Emergency vehicles have red+blue ambulance/police livery.
+       ████████████████████████████████████████████████████████████████████
+    ════════════════════════════════════════════════════════════════════ */
+    const VehicleRenderer = (() => {
+
+      /** Lighten a hex colour for roof highlight */
+      function lighten(hex, amt = 48) {
+        const n = parseInt(hex.slice(1), 16);
+        const r = Math.min(255, (n >> 16) + amt);
+        const g = Math.min(255, ((n >> 8) & 0xff) + amt);
+        const b = Math.min(255, (n & 0xff) + amt);
+        return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+      }
+
+      /**
+       * Normal car SVG.
+       * Lane 1 (W→E): faces right  | Lane 2 (E→W): faces left
+       * Lane 3 (N→S): faces down   | Lane 4 (S→N): faces up
+       */
+      function carSVG(laneId, color) {
+        const c = color, sh = lighten(color, 52);
+        const win = '#a8d8ff', wh = '#18202e', whr = '#424f63';
+
+        if (laneId === 1) { /* W→E — headlights RIGHT */
+          return `<svg width="50" height="26" viewBox="0 0 50 26" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="25" cy="25.5" rx="21" ry="2" fill="#000" opacity=".2"/>
+        <rect x="2" y="9" width="46" height="13" rx="4" fill="${c}"/>
+        <path d="M40,9 L48,9 L48,17 Q44,17 40,9Z" fill="${sh}" opacity=".35"/>
+        <rect x="13" y="3" width="24" height="11" rx="3" fill="${sh}"/>
+        <rect x="33" y="4.5" width="2.5" height="7" rx="1" fill="${c}" opacity=".5"/>
+        <rect x="15" y="4.5" width="8" height="7" rx="1.5" fill="${win}" opacity=".9"/>
+        <rect x="25" y="4.5" width="8" height="7" rx="1.5" fill="${win}" opacity=".9"/>
+        <rect x="45" y="10" width="4" height="5" rx="1" fill="#fffbb0" opacity=".95"/>
+        <rect x="2"  y="10" width="4" height="5" rx="1" fill="#f87171" opacity=".82"/>
+        <ellipse cx="10" cy="9"  rx="4" ry="4" fill="${wh}"/><ellipse cx="10" cy="9"  rx="1.8" ry="1.8" fill="${whr}"/>
+        <ellipse cx="38" cy="9"  rx="4" ry="4" fill="${wh}"/><ellipse cx="38" cy="9"  rx="1.8" ry="1.8" fill="${whr}"/>
+        <ellipse cx="10" cy="22" rx="4" ry="4" fill="${wh}"/><ellipse cx="10" cy="22" rx="1.8" ry="1.8" fill="${whr}"/>
+        <ellipse cx="38" cy="22" rx="4" ry="4" fill="${wh}"/><ellipse cx="38" cy="22" rx="1.8" ry="1.8" fill="${whr}"/>
+      </svg>`;
+        }
+        if (laneId === 2) { /* E→W — headlights LEFT */
+          return `<svg width="50" height="26" viewBox="0 0 50 26" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="25" cy="25.5" rx="21" ry="2" fill="#000" opacity=".2"/>
+        <rect x="2" y="9" width="46" height="13" rx="4" fill="${c}"/>
+        <path d="M10,9 L2,9 L2,17 Q6,17 10,9Z" fill="${sh}" opacity=".35"/>
+        <rect x="13" y="3" width="24" height="11" rx="3" fill="${sh}"/>
+        <rect x="14.5" y="4.5" width="2.5" height="7" rx="1" fill="${c}" opacity=".5"/>
+        <rect x="17" y="4.5" width="8" height="7" rx="1.5" fill="${win}" opacity=".9"/>
+        <rect x="27" y="4.5" width="8" height="7" rx="1.5" fill="${win}" opacity=".9"/>
+        <rect x="2"  y="10" width="4" height="5" rx="1" fill="#fffbb0" opacity=".95"/>
+        <rect x="44" y="10" width="4" height="5" rx="1" fill="#f87171" opacity=".82"/>
+        <ellipse cx="10" cy="9"  rx="4" ry="4" fill="${wh}"/><ellipse cx="10" cy="9"  rx="1.8" ry="1.8" fill="${whr}"/>
+        <ellipse cx="38" cy="9"  rx="4" ry="4" fill="${wh}"/><ellipse cx="38" cy="9"  rx="1.8" ry="1.8" fill="${whr}"/>
+        <ellipse cx="10" cy="22" rx="4" ry="4" fill="${wh}"/><ellipse cx="10" cy="22" rx="1.8" ry="1.8" fill="${whr}"/>
+        <ellipse cx="38" cy="22" rx="4" ry="4" fill="${wh}"/><ellipse cx="38" cy="22" rx="1.8" ry="1.8" fill="${whr}"/>
+      </svg>`;
+        }
+        if (laneId === 3) { /* N→S — headlights BOTTOM */
+          return `<svg width="26" height="50" viewBox="0 0 26 50" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="24.5" cy="25" rx="2" ry="21" fill="#000" opacity=".2"/>
+        <rect x="7" y="2" width="12" height="46" rx="4" fill="${c}"/>
+        <path d="M7,40 L7,48 L15,48 Q13,44 7,40Z" fill="${sh}" opacity=".35"/>
+        <rect x="3" y="13" width="20" height="24" rx="3" fill="${sh}"/>
+        <rect x="4.5" y="14" width="7" height="2.5" rx="1" fill="${c}" opacity=".5"/>
+        <rect x="4.5" y="17" width="7" height="8" rx="1.5" fill="${win}" opacity=".9"/>
+        <rect x="4.5" y="27" width="7" height="8" rx="1.5" fill="${win}" opacity=".9"/>
+        <rect x="10" y="45" width="5" height="4" rx="1" fill="#fffbb0" opacity=".95"/>
+        <rect x="10" y="2"  width="5" height="4" rx="1" fill="#f87171" opacity=".82"/>
+        <ellipse cx="7"  cy="11" rx="4" ry="4" fill="${wh}"/><ellipse cx="7"  cy="11" rx="1.8" ry="1.8" fill="${whr}"/>
+        <ellipse cx="19" cy="11" rx="4" ry="4" fill="${wh}"/><ellipse cx="19" cy="11" rx="1.8" ry="1.8" fill="${whr}"/>
+        <ellipse cx="7"  cy="39" rx="4" ry="4" fill="${wh}"/><ellipse cx="7"  cy="39" rx="1.8" ry="1.8" fill="${whr}"/>
+        <ellipse cx="19" cy="39" rx="4" ry="4" fill="${wh}"/><ellipse cx="19" cy="39" rx="1.8" ry="1.8" fill="${whr}"/>
+      </svg>`;
+        }
+        /* laneId===4  S→N — headlights TOP */
+        return `<svg width="26" height="50" viewBox="0 0 26 50" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="24.5" cy="25" rx="2" ry="21" fill="#000" opacity=".2"/>
+      <rect x="7" y="2" width="12" height="46" rx="4" fill="${c}"/>
+      <path d="M7,10 L7,2 L15,2 Q13,6 7,10Z" fill="${sh}" opacity=".35"/>
+      <rect x="3" y="13" width="20" height="24" rx="3" fill="${sh}"/>
+      <rect x="4.5" y="37" width="7" height="2.5" rx="1" fill="${c}" opacity=".5"/>
+      <rect x="4.5" y="18" width="7" height="8" rx="1.5" fill="${win}" opacity=".9"/>
+      <rect x="4.5" y="28" width="7" height="8" rx="1.5" fill="${win}" opacity=".9"/>
+      <rect x="10" y="2"  width="5" height="4" rx="1" fill="#fffbb0" opacity=".95"/>
+      <rect x="10" y="44" width="5" height="4" rx="1" fill="#f87171" opacity=".82"/>
+      <ellipse cx="7"  cy="11" rx="4" ry="4" fill="${wh}"/><ellipse cx="7"  cy="11" rx="1.8" ry="1.8" fill="${whr}"/>
+      <ellipse cx="19" cy="11" rx="4" ry="4" fill="${wh}"/><ellipse cx="19" cy="11" rx="1.8" ry="1.8" fill="${whr}"/>
+      <ellipse cx="7"  cy="39" rx="4" ry="4" fill="${wh}"/><ellipse cx="7"  cy="39" rx="1.8" ry="1.8" fill="${whr}"/>
+      <ellipse cx="19" cy="39" rx="4" ry="4" fill="${wh}"/><ellipse cx="19" cy="39" rx="1.8" ry="1.8" fill="${whr}"/>
+    </svg>`;
+      }
+
+      /** Emergency vehicle — red+blue livery, light bar on roof */
+      function emerSVG(laneId) {
+        const bd = '#e8ecf0', cb = '#bac8d6', win = '#c4e0ff';
+        const wh = '#18202e', whr = '#424f63';
+
+        if (laneId === 1 || laneId === 2) {
+          const fL = laneId === 2; /* headlights face left for lane 2 */
+          return `<svg width="50" height="26" viewBox="0 0 50 26" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="25" cy="25.5" rx="21" ry="2" fill="#000" opacity=".28"/>
+        <rect x="2" y="9" width="46" height="13" rx="4" fill="${bd}"/>
+        <rect x="2"  y="9"  width="23" height="6" fill="#ef4444" opacity=".8"/>
+        <rect x="25" y="9"  width="23" height="6" fill="#3b82f6" opacity=".8"/>
+        <rect x="13" y="3" width="24" height="11" rx="3" fill="${cb}"/>
+        <rect x="15" y="4.5" width="8" height="7" rx="1.5" fill="${win}" opacity=".9"/>
+        <rect x="25" y="4.5" width="8" height="7" rx="1.5" fill="${win}" opacity=".9"/>
+        <rect x="16" y="1.5" width="7" height="3" rx="1" fill="#ef4444"/>
+        <rect x="26" y="1.5" width="7" height="3" rx="1" fill="#3b82f6"/>
+        <rect x="${fL ? 2 : 44}" y="10" width="4" height="5" rx="1" fill="#fffbb0" opacity=".95"/>
+        <rect x="${fL ? 44 : 2}"  y="10" width="4" height="5" rx="1" fill="#f87171" opacity=".7"/>
+        <ellipse cx="10" cy="9"  rx="4" ry="4" fill="${wh}"/><ellipse cx="10" cy="9"  rx="1.8" ry="1.8" fill="${whr}"/>
+        <ellipse cx="38" cy="9"  rx="4" ry="4" fill="${wh}"/><ellipse cx="38" cy="9"  rx="1.8" ry="1.8" fill="${whr}"/>
+        <ellipse cx="10" cy="22" rx="4" ry="4" fill="${wh}"/><ellipse cx="10" cy="22" rx="1.8" ry="1.8" fill="${whr}"/>
+        <ellipse cx="38" cy="22" rx="4" ry="4" fill="${wh}"/><ellipse cx="38" cy="22" rx="1.8" ry="1.8" fill="${whr}"/>
+      </svg>`;
+        }
+        const fU = laneId === 4;
+        return `<svg width="26" height="50" viewBox="0 0 26 50" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="24.5" cy="25" rx="2" ry="21" fill="#000" opacity=".28"/>
+      <rect x="7" y="2" width="12" height="46" rx="4" fill="${bd}"/>
+      <rect x="7"  y="2"  width="6" height="23" fill="#ef4444" opacity=".8"/>
+      <rect x="13" y="2"  width="6" height="23" fill="#3b82f6" opacity=".8"/>
+      <rect x="3" y="13" width="20" height="24" rx="3" fill="${cb}"/>
+      <rect x="4.5" y="17" width="7" height="8" rx="1.5" fill="${win}" opacity=".9"/>
+      <rect x="4.5" y="27" width="7" height="8" rx="1.5" fill="${win}" opacity=".9"/>
+      <rect x="2" y="16" width="3" height="8" rx="1" fill="#ef4444"/>
+      <rect x="2" y="26" width="3" height="8" rx="1" fill="#3b82f6"/>
+      <rect x="10" y="${fU ? 2 : 44}" width="5" height="4" rx="1" fill="#fffbb0" opacity=".95"/>
+      <rect x="10" y="${fU ? 44 : 2}"  width="5" height="4" rx="1" fill="#f87171" opacity=".7"/>
+      <ellipse cx="7"  cy="11" rx="4" ry="4" fill="${wh}"/><ellipse cx="7"  cy="11" rx="1.8" ry="1.8" fill="${whr}"/>
+      <ellipse cx="19" cy="11" rx="4" ry="4" fill="${wh}"/><ellipse cx="19" cy="11" rx="1.8" ry="1.8" fill="${whr}"/>
+      <ellipse cx="7"  cy="39" rx="4" ry="4" fill="${wh}"/><ellipse cx="7"  cy="39" rx="1.8" ry="1.8" fill="${whr}"/>
+      <ellipse cx="19" cy="39" rx="4" ry="4" fill="${wh}"/><ellipse cx="19" cy="39" rx="1.8" ry="1.8" fill="${whr}"/>
+    </svg>`;
+      }
+
+      return { carSVG, emerSVG };
+    })();
+
+
+    /* ════════════════════════════════════════════════════════════════════
+       ████████████████████████████████████████████████████████████████████
+       MODULE B — TRAFFIC SIGNAL LOGIC  (pure JS mirror of sim.c)
+       Used when the Node.js server is unreachable.
+       Algorithm is identical to the C implementation.
+       ████████████████████████████████████████████████████████████████████
+    ════════════════════════════════════════════════════════════════════ */
+    const SignalLogic = (() => {
+
+      const CONG_THRESHOLD = 10; /* total vehicles above which road is congested */
+      const BASE = 5;  /* minimum green time (seconds) */
+      const MAX = 25; /* maximum green time (seconds) */
+
+      /**
+       * Compute next traffic phase and duration.
+       * @param {object} p Traffic state snapshot
+       * @returns {{phase, duration_left, speed, congestion}}
+       */
+      function compute(p) {
+        let dec = { next_phase: p.current_phase, duration_left: 0 };
+        const tot = [0, p.l1_tot, p.l2_tot, p.l3_tot, p.l4_tot];
+        const act = [0, p.l1_act, p.l2_act, p.l3_act, p.l4_act];
+
+        const max = [
+          0,
+          Math.min(45, 8 + tot[1] * 3),
+          Math.min(45, 8 + tot[2] * 3),
+          Math.min(45, 8 + tot[3] * 3),
+          Math.min(45, 8 + tot[4] * 3)
+        ];
+
+        if (p.emer > 0) {
+          dec.next_phase = p.emer;
+          dec.duration_left = 30;
+          const cong = (tot[1] + tot[2] + tot[3] + tot[4]) > 10 ? 1 : 0;
+          return { phase: dec.next_phase, duration_left: dec.duration_left, speed: cong ? 22.5 : 40.0, congestion: cong };
+        }
+
+        if (p.time_in_phase === 0) {
+          let maxTot = -1;
+          dec.next_phase = 1;
+          for (let i = 1; i <= 4; i++) {
+            if (tot[i] > maxTot) { maxTot = tot[i]; dec.next_phase = i; }
+          }
+          dec.duration_left = max[dec.next_phase];
+          const cong = (tot[1] + tot[2] + tot[3] + tot[4]) > 10 ? 1 : 0;
+          return { phase: dec.next_phase, duration_left: dec.duration_left, speed: cong ? 22.5 : 40.0, congestion: cong };
+        }
+
+        const currMax = max[p.current_phase] || 15;
+        let d = currMax - p.time_in_phase;
+        if (d < 0) d = 0;
+        dec.duration_left = d;
+
+        const early = p.time_in_phase >= 3 && act[p.current_phase] === 0;
+        if (early || p.time_in_phase >= currMax) {
+          for (let i = 1; i <= 4; i++) {
+            const next = ((p.current_phase + i - 1) % 4) + 1;
+            if (tot[next] > 0) { dec.next_phase = next; break; }
+          }
+          if (dec.next_phase === p.current_phase) dec.next_phase = (p.current_phase % 4) + 1;
+          dec.duration_left = max[dec.next_phase] || 15;
+        }
+
+        const cong = (tot[1] + tot[2] + tot[3] + tot[4]) > 10 ? 1 : 0;
+        return { phase: dec.next_phase, duration_left: dec.duration_left, speed: cong ? 22.5 : 40.0, congestion: cong };
+      }
+
+      return { compute };
+    })();
+
+
+    /* ════════════════════════════════════════════════════════════════════
+       ████████████████████████████████████████████████████████████████████
+       MODULE C — NETWORK LAYER
+       Issues POST /get-traffic to the Node.js server.
+       Falls back to SignalLogic.compute() on any error/timeout.
+       Updates the network status indicator automatically.
+    
+       BUG FIXED: original code had no timeout, no retry, and the
+       catch block did a dumb phase-flip ignoring all traffic state.
+       Now: 1500ms AbortSignal timeout + graceful JS fallback.
+       ████████████████████████████████████████████████████████████████████
+    ════════════════════════════════════════════════════════════════════ */
+    const Network = (() => {
+
+      let _mode = 'unknown';
+
+      function setStatus(cls, _text) { _mode = cls; }
+
+      /**
+       * Fetch decision from server or fall back to local logic.
+       * Always resolves — never throws.
+       */
+      async function query(params) {
+        try {
+          const res = await fetch('/get-traffic', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(params),
+            signal: AbortSignal.timeout(1500),
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const d = await res.json();
+          if (typeof d.phase !== 'number') throw new Error('Bad payload');
+          setStatus('online', '● Server online');
+          return d;
+        } catch {
+          setStatus('local', '● Local mode');
+          return SignalLogic.compute(params);
+        }
+      }
+
+      function getMode() { return _mode; }
+
+      return { query, getMode };
+    })();
+
+
+    /* ════════════════════════════════════════════════════════════════════
+       ████████████████████████████████████████████████████████████████████
+       MODULE D — SIMULATION STATE
+       Central mutable state. All modules read/write this object.
+       ████████████████████████████████████████████████████████████████████
+    ════════════════════════════════════════════════════════════════════ */
+    const Sim = {
+      phase: 1,     /* 1 = H road green, 2 = V road green */
+      timeInPhase: 0,     /* seconds since last phase change */
+      timerSecs: 0,     /* countdown displayed in panel */
+      active: false, /* true while signals are running */
+      cycles: 0,     /* number of phase switches */
+      /*
+       * vehicles[laneId] arrays contain physics objects:
+       * { pos, speed, topSpeed, elem, isEmer }
+       * Ordered as spawned — index 0 = furthest ahead in lane.
+       */
+      vehicles: { 1: [], 2: [], 3: [], 4: [] },
+      pollHandle: null,
+      countdownHandle: null,
+
+      /* Colour palette — vivid but not neon */
+      COLORS: [
+        '#2563eb', '#7c3aed', '#d97706', '#059669',
+        '#db2777', '#0891b2', '#dc2626', '#65a30d',
+        '#ea580c', '#0369a1', '#9333ea', '#16a34a',
+      ],
+    };
+
+
+    /* ════════════════════════════════════════════════════════════════════
+       ████████████████████████████████████████████████████████████████████
+       MODULE E — LANE GEOMETRY
+       All coordinates in px (map is 780×780).
+       Intersection zone: x∈[312,468], y∈[312,468].
+    
+       Lane discipline (NO vehicle crosses the centre dashed line):
+       ┌──────────────────────────────────────────────────────────────┐
+       │  H road: top=312, height=156, centre-y=390, dashed @ y=390 │
+       │  Lane 1 (W→E): element top=330, h=26 → bottom=356 (< 390) ← upper half only │
+       │  Lane 2 (E→W): element top=403, h=26 → bottom=429 (> 390) ← lower half only │
+       │                                                              │
+       │  V road: left=312, width=156, centre-x=390, dashed @ x=390 │
+       │  Lane 3 (N→S): element left=330, w=26 → right=356 (< 390)  │
+       │  Lane 4 (S→N): element left=403, w=26 → right=429 (> 390)  │
+       └──────────────────────────────────────────────────────────────┘
+       ████████████████████████████████████████████████████████████████████
+    ════════════════════════════════════════════════════════════════════ */
+    const LANE = {
+      /* type H|V  dir +1=fwd -1=rev  fixedCoord=top(H)/left(V)
+         start=spawn pos  stopLine=red halt px  cw/ch=element size */
+      1: { type: 'H', dir: 1, fixedCoord: 330, start: -55, stopLine: 302, cw: 50, ch: 26 }, /* W→E upper lane */
+      2: { type: 'H', dir: -1, fixedCoord: 403, start: 840, stopLine: 468, cw: 50, ch: 26 }, /* E→W lower lane */
+      3: { type: 'V', dir: 1, fixedCoord: 330, start: -55, stopLine: 302, cw: 26, ch: 50 }, /* N→S left  lane */
+      4: { type: 'V', dir: -1, fixedCoord: 403, start: 840, stopLine: 468, cw: 26, ch: 50 }, /* S→N right lane */
+    };
+    const SAFE_GAP = 15;   /* px bumper-to-bumper clearance */
+    const ACCEL = 0.27; /* px/frame² smooth acceleration */
+    const BRAKE = 0.58; /* px/frame² deceleration */
+    const MAX_SPEED = 5;    /* px/frame normal car */
+    const EMER_SPEED = 8;   /* px/frame emergency vehicle */
+
+
+    /* ════════════════════════════════════════════════════════════════════
+       ████████████████████████████████████████████████████████████████████
+       MODULE F — TRAFFIC LIGHT UI
+       Controls glow/colour of all 4 traffic light housings.
+       GREEN: only inside .light-box .bulb — never free-floating.
+       ████████████████████████████████████████████████████████████████████
+    ════════════════════════════════════════════════════════════════════ */
+    const LightUI = (() => {
+
+      const badge = document.getElementById('phaseBadge');
+      const flashEl = document.getElementById('phase-flash');
+
+      /** Sync all light bulbs to current Sim.phase */
+      function update() {
+        if (!Sim.active) {
+          badge.textContent = 'SIGNALS OFF';
+          badge.style.cssText = 'background:var(--bg-deep);color:var(--text-dim)';
+          return;
+        }
+
+        const lights = [
+          { red: document.querySelector('#lh1 .h-red'), green: document.querySelector('#lh1 .h-green'), active: Sim.phase === 1 },
+          { red: document.querySelector('#lh2 .h-red'), green: document.querySelector('#lh2 .h-green'), active: Sim.phase === 2 },
+          { red: document.querySelector('#lv1 .v-red'), green: document.querySelector('#lv1 .v-green'), active: Sim.phase === 3 },
+          { red: document.querySelector('#lv2 .v-red'), green: document.querySelector('#lv2 .v-green'), active: Sim.phase === 4 }
+        ];
+
+        lights.forEach(l => {
+          if (l.active) {
+            l.green.classList.add('green-on');
+            l.red.classList.remove('red-on');
+          } else {
+            l.green.classList.remove('green-on');
+            l.red.classList.add('red-on');
+          }
+        });
+
+        let label = '';
+        let bg = '';
+        if (Sim.phase === 1) { label = '● PHASE 1  LANE 1 GREEN (W→E)'; bg = 'background:#1e3a5f;color:#93c5fd'; }
+        else if (Sim.phase === 2) { label = '● PHASE 2  LANE 2 GREEN (E→W)'; bg = 'background:#1e3a5f;color:#93c5fd'; }
+        else if (Sim.phase === 3) { label = '● PHASE 3  LANE 3 GREEN (N→S)'; bg = 'background:#3b1c6a;color:#ddd6fe'; }
+        else { label = '● PHASE 4  LANE 4 GREEN (S→N)'; bg = 'background:#3b1c6a;color:#ddd6fe'; }
+
+        badge.textContent = label;
+        badge.style.cssText = bg;
+      }
+
+      /** All red — used when system is OFF */
+      function allRed() {
+        document.querySelectorAll('.h-green,.v-green').forEach(e => e.classList.remove('green-on'));
+        document.querySelectorAll('.h-red,.v-red').forEach(e => e.classList.add('red-on'));
+        badge.textContent = 'SIGNALS OFF';
+        badge.style.cssText = 'background:var(--bg-deep);color:var(--text-dim)';
+      }
+
+      /** Brief translucent colour flash when phase switches */
+      function flash(col) {
+        flashEl.style.background = col;
+        flashEl.style.opacity = '1';
+        setTimeout(() => flashEl.style.opacity = '0', 180);
+      }
+
+      return { update, allRed, flash };
+    })();
+
+
+    /* ════════════════════════════════════════════════════════════════════
+       ████████████████████████████████████████████████████████████████████
+       MODULE G — VEHICLE MOVEMENT ENGINE
+       Physics simulation: acceleration, braking, car-following, red lights.
+       Each vehicle has its own 30ms ticker (~33 fps).
+       Lane discipline is enforced by LANE.fixedCoord — vehicles never
+       deviate from their assigned fixed row/column.
+       ████████████████████████████████████████████████████████████████████
+    ════════════════════════════════════════════════════════════════════ */
+    const VehicleEngine = (() => {
+
+      const mapEl = document.getElementById('map');
+
+      function getTargetLane(lane, intent) {
+        if (intent === 'S') return lane;
+        if (lane === 1) return intent === 'L' ? 4 : 3;
+        if (lane === 2) return intent === 'L' ? 3 : 4;
+        if (lane === 3) return intent === 'L' ? 1 : 2;
+        if (lane === 4) return intent === 'L' ? 2 : 1;
+      }
+
+      function insertIntoLane(tid, obj) {
+        const arr = Sim.vehicles[tid];
+        const L = LANE[tid];
+        let i = 0;
+        if (L.dir === 1) {
+          for (; i < arr.length; i++) if (obj.pos > arr[i].pos) break;
+        } else {
+          for (; i < arr.length; i++) if (obj.pos < arr[i].pos) break;
+        }
+        arr.splice(i, 0, obj);
+      }
+
+      /**
+       * Spawn one vehicle.
+       * @param {number}  laneIdParam   1–4
+       * @param {boolean} isEmer   emergency vehicle?
+       * @param {string}  color    hex colour for normal cars
+       */
+      function spawn(laneIdParam, isEmer, color) {
+        let laneId = laneIdParam;
+        const L = LANE[laneId];
+        const el = document.createElement('div');
+        el.className = 'vehicle' + (isEmer ? ' emer' : '');
+        el.style.width = L.cw + 'px';
+        el.style.height = L.ch + 'px';
+        el.style.transition = 'transform 0.15s ease';
+        el.innerHTML = isEmer
+          ? VehicleRenderer.emerSVG(laneId)
+          : VehicleRenderer.carSVG(laneId, color);
+        mapEl.appendChild(el);
+
+        const turnOptions = ['S', 'S', 'S', 'L', 'R'];
+        const assignedIntent = isEmer ? 'S' : turnOptions[Math.floor(Math.random() * turnOptions.length)];
+
+        const obj = {
+          pos: L.start,
+          speed: 0,
+          topSpeed: isEmer ? EMER_SPEED : MAX_SPEED * (0.85 + Math.random() * 0.30),
+          elem: el,
+          isEmer,
+          intent: assignedIntent,
+          color: color
+        };
+        Sim.vehicles[laneId].push(obj);
+
+        /* 30 ms physics tick */
+        const tick = setInterval(() => {
+          const idx = Sim.vehicles[laneId].indexOf(obj);
+          if (idx === -1) { clearInterval(tick); return; }
+
+          const curL = LANE[laneId];
+          const targetLaneId = getTargetLane(laneId, obj.intent);
+
+          /* Check if turning point reached */
+          if (targetLaneId !== laneId) {
+            const targetL = LANE[targetLaneId];
+            const turnPos = targetL.fixedCoord;
+            const crossed = curL.dir === 1 ? (obj.pos >= turnPos) : (obj.pos <= turnPos);
+
+            if (crossed) {
+              // Perform turn
+              Sim.vehicles[laneId].splice(idx, 1);
+
+              obj.pos = curL.fixedCoord; // Pivot point
+              obj.intent = 'S'; // Done turning
+
+              // Swap dimensions and SVGs
+              el.style.width = targetL.cw + 'px';
+              el.style.height = targetL.ch + 'px';
+              el.innerHTML = obj.isEmer ? VehicleRenderer.emerSVG(targetLaneId) : VehicleRenderer.carSVG(targetLaneId, obj.color);
+
+              laneId = targetLaneId;
+              insertIntoLane(laneId, obj);
+              return; // Skip physics this frame to let DOM settle
+            }
+          }
+
+          const ahead = Sim.vehicles[laneId][idx - 1]; /* car in front */
+          const carLen = curL.type === 'H' ? curL.cw : curL.ch;  /* length along axis */
+
+          /* Is this lane's signal green? */
+          const isGreen = Sim.active && (laneId === Sim.phase);
+
+          let targetSpeed = obj.topSpeed;
+          let hardStop = false;
+          let stopPos = null; /* front edge constraint */
+
+          /* ── Red light: front edge must not cross stopLine ── */
+          if (!isGreen && !isEmer) {
+            const sp = curL.dir === 1 ? curL.stopLine - carLen : curL.stopLine;
+            // Only enforce red light if vehicle has not already entered the intersection deeply.
+            // +15/-15 px buffer ensures cars braking that slightly overshoot the line still halt.
+            const deeplyPast = curL.dir === 1 ? (obj.pos > sp + 15) : (obj.pos < sp - 15);
+            if (!deeplyPast) {
+              stopPos = sp;
+            }
+          }
+
+          /* ── Car-following model ── */
+          if (ahead) {
+            const gapTarget = curL.dir === 1
+              ? ahead.pos - carLen - SAFE_GAP
+              : ahead.pos + carLen + SAFE_GAP;
+            const dist = curL.dir === 1 ? gapTarget - obj.pos : obj.pos - gapTarget;
+
+            if (dist <= 0) {
+              if (Math.abs(dist) < 8) obj.pos = gapTarget;
+              hardStop = true; targetSpeed = 0;
+            } else {
+              const bd = obj.speed * obj.speed / (2 * BRAKE) * 3;
+              if (dist < bd) targetSpeed = Math.max(0, obj.topSpeed * (dist / bd));
+              if (stopPos !== null)
+                stopPos = curL.dir === 1 ? Math.min(stopPos, gapTarget) : Math.max(stopPos, gapTarget);
+            }
+          }
+
+          /* ── Red-light distance braking ── */
+          if (stopPos !== null && !hardStop) {
+            const dist = curL.dir === 1 ? stopPos - obj.pos : obj.pos - stopPos;
+            if (dist <= 0) {
+              if (Math.abs(dist) < 8) obj.pos = stopPos;
+              obj.speed = 0; hardStop = true;
+            } else {
+              const bd = obj.speed * obj.speed / (2 * BRAKE) * 2.5;
+              if (dist < bd) targetSpeed = Math.min(targetSpeed, Math.max(0, obj.topSpeed * (dist / bd)));
+            }
+          }
+
+          /* ── Smooth acceleration/deceleration ── */
+          if (!hardStop) {
+            if (obj.speed < targetSpeed) obj.speed = Math.min(targetSpeed, obj.speed + ACCEL);
+            else if (obj.speed > targetSpeed) obj.speed = Math.max(targetSpeed, obj.speed - BRAKE);
+            obj.pos += obj.speed * curL.dir;
+          }
+
+          /* ── Render: update CSS position ── */
+          if (curL.type === 'H') {
+            el.style.left = obj.pos + 'px';
+            el.style.top = curL.fixedCoord + 'px';
+          } else {
+            el.style.top = obj.pos + 'px';
+            el.style.left = curL.fixedCoord + 'px';
+          }
+
+          /* ── Despawn when off-screen ── */
+          if (curL.dir === 1 ? obj.pos > 850 : obj.pos < -90) {
+            clearInterval(tick);
+            const i = Sim.vehicles[laneId].indexOf(obj);
+            if (i !== -1) Sim.vehicles[laneId].splice(i, 1);
+            el.remove();
+          }
+        }, 30);
+      }
+
+      /** Instantly remove all vehicles */
+      function clearAll() {
+        for (let l = 1; l <= 4; l++) {
+          Sim.vehicles[l].forEach(v => v.elem.remove());
+          Sim.vehicles[l] = [];
+        }
+      }
+
+      return { spawn, clearAll };
+    })();
+
+
+    /* ════════════════════════════════════════════════════════════════════
+       ████████████████████████████████████████████████████████████████████
+       MODULE H — SIGNAL CONTROLLER
+       Manages countdown, polling loop, phase transitions, metrics panel.
+       ████████████████████████████████████████████████████████████████████
+    ════════════════════════════════════════════════════════════════════ */
+    const SignalController = (() => {
+
+      /* Panel element refs */
+      const timerEl = document.getElementById('timerVal');
+      const speedEl = document.getElementById('speedVal');
+      const congEl = document.getElementById('congVal');
+      const hCntEl = document.getElementById('hCount');
+      const vCntEl = document.getElementById('vCount');
+      const hBarEl = document.getElementById('h-bar');
+      const vBarEl = document.getElementById('v-bar');
+
+      /* Smoothed vehicle counts for gentle UI transitions */
+      let _hSmooth = 0, _vSmooth = 0;
+
+      /** Count vehicles overlapping the intersection zone (312–468 px) */
+      function activeCount(laneId) {
+        const L = LANE[laneId];
+        const sz = L.type === 'H' ? L.cw : L.ch;
+        return Sim.vehicles[laneId].filter(v => (v.pos + sz) > 312 && v.pos < 468).length;
+      }
+
+      /** Update density bar colours based on load */
+      function updateDensityBars(hTot, vTot) {
+        const MAX_V = 20;
+        const hp = hTot / MAX_V, vp = vTot / MAX_V;
+        hBarEl.style.width = Math.min(100, hp * 100) + '%';
+        vBarEl.style.width = Math.min(100, vp * 100) + '%';
+        hBarEl.style.background = hp > .7 ? '#ef4444' : hp > .4 ? '#f59e0b' : 'var(--accent-b)';
+        vBarEl.style.background = vp > .7 ? '#ef4444' : vp > .4 ? '#f59e0b' : 'var(--accent-p)';
+      }
+
+      /** Smoothly lerp displayed vehicle counts to avoid jumpy UI */
+      function updateCounts(hTot, vTot) {
+        _hSmooth += (hTot - _hSmooth) * 0.18;
+        _vSmooth += (vTot - _vSmooth) * 0.18;
+        hCntEl.textContent = Math.round(_hSmooth) + (Math.round(_hSmooth) === 1 ? ' car' : ' cars');
+        vCntEl.textContent = Math.round(_vSmooth) + (Math.round(_vSmooth) === 1 ? ' car' : ' cars');
+      }
+
+      /** Poll and apply traffic decision */
+      async function poll() {
+        const hAct = activeCount(1) + activeCount(2);
+        const vAct = activeCount(3) + activeCount(4);
+        const hTot = Sim.vehicles[1].length + Sim.vehicles[2].length;
+        const vTot = Sim.vehicles[3].length + Sim.vehicles[4].length;
+
+        let activeEmer = 0;
+        for (let l = 1; l <= 4; l++) {
+          if (Sim.vehicles[l].some(v => v.isEmer)) {
+            activeEmer = l;
+            break;
+          }
+        }
+
+        /* Update panel counts and bars */
+        updateCounts(hTot, vTot);
+        updateDensityBars(hTot, vTot);
+
+        /* ── QUERY SERVER: Pass dynamic emergency state ── */
+        const result = await Network.query({
+          l1_act: activeCount(1), l2_act: activeCount(2), l3_act: activeCount(3), l4_act: activeCount(4),
+          emer: activeEmer,
+          current_phase: Sim.phase,
+          time_in_phase: Sim.timeInPhase,
+          l1_tot: Sim.vehicles[1].length,
+          l2_tot: Sim.vehicles[2].length,
+          l3_tot: Sim.vehicles[3].length,
+          l4_tot: Sim.vehicles[4].length
+        });
+
+        /* Apply phase switch if decision changed */
+        if (result.phase !== Sim.phase) {
+          Sim.phase = result.phase;
+          Sim.timeInPhase = 0;
+          LightUI.flash(activeEmer > 0 ? '#ef444415' : 'rgba(167,139,250,.07)');
+          LightUI.update();
+        }
+
+        /* Unconditionally sync the timer with the backend's duration_left to avoid getting stuck at 0 */
+        Sim.timerSecs = result.duration_left;
+
+        speedEl.textContent = result.speed.toFixed(1) + ' km/h';
+
+        /* Status reflects actual traffic state */
+        const hTot2 = Sim.vehicles[1].length + Sim.vehicles[2].length;
+        const vTot2 = Sim.vehicles[3].length + Sim.vehicles[4].length;
+        const total2 = hTot2 + vTot2;
+        if (activeEmer > 0) {
+          congEl.textContent = '🚨 EMERGENCY';
+          congEl.style.color = 'var(--accent-r)';
+        } else if (total2 === 0) {
+          congEl.textContent = '— NO TRAFFIC';
+          congEl.style.color = 'var(--text-dim)';
+        } else if (result.congestion) {
+          congEl.textContent = '⚠ CONGESTED';
+          congEl.style.color = 'var(--accent-r)';
+        } else if (total2 > 5) {
+          congEl.textContent = '↻ MODERATE';
+          congEl.style.color = 'var(--accent-y)';
+        } else {
+          congEl.textContent = '✓ FLOWING';
+          congEl.style.color = 'var(--accent-g)';
+        }
+        timerEl.textContent = Sim.timerSecs;
+      }
+
+      /** Start signal system */
+      function start() {
+        Sim.active = true;
+        Sim.timeInPhase = 0;
+
+        Sim.phase = 1;
+        Sim.timerSecs = Math.min(45, 8 + (Sim.vehicles[1].length * 3));
+
+        /* Sync smoothed counts to actual */
+        const hTot = Sim.vehicles[1].length + Sim.vehicles[2].length;
+        const vTot = Sim.vehicles[3].length + Sim.vehicles[4].length;
+        _hSmooth = hTot; _vSmooth = vTot;
+
+        LightUI.update();
+
+        /* Countdown tick: once per second */
+        Sim.countdownHandle = setInterval(() => {
+          Sim.timeInPhase++;
+          Sim.timerSecs = Math.max(0, Sim.timerSecs - 1);
+          timerEl.textContent = Sim.timerSecs;
+        }, 1000);
+
+        /* Poll tick: once per second */
+        Sim.pollHandle = setInterval(poll, 1000);
+        poll(); /* immediate first poll */
+      }
+
+      /** Stop signal system */
+      function stop() {
+        Sim.active = false;
+        clearInterval(Sim.pollHandle);
+        clearInterval(Sim.countdownHandle);
+        Sim.pollHandle = Sim.countdownHandle = null;
+        Sim.timeInPhase = 0;
+
+        timerEl.textContent = '--';
+        speedEl.textContent = '—';
+        congEl.textContent = '—';
+        congEl.style.color = 'var(--accent-g)';
+        LightUI.allRed();
+      }
+
+      return { start, stop };
+    })();
+
+
+    /* ════════════════════════════════════════════════════════════════════
+       ████████████████████████████████████████████████████████████████████
+       MODULE I — MAP INIT (zebra crossings)
+       Builds stripe children for the 4 pedestrian crossing elements.
+       ████████████████████████████████████████████████████████████████████
+    ════════════════════════════════════════════════════════════════════ */
+    (function buildZebras() {
+      /* H crossings: 8 vertical stripe columns */
+      ['zhl', 'zhr'].forEach(id => {
+        const el = document.getElementById(id);
+        for (let i = 0; i < 8; i++) {
+          const s = document.createElement('div');
+          s.className = i % 2 === 0 ? 'zs' : 'zg';
+          el.appendChild(s);
+        }
+      });
+      /* V crossings: 8 horizontal stripe rows */
+      ['zvt', 'zvb'].forEach(id => {
+        const el = document.getElementById(id);
+        el.style.display = 'flex';
+        for (let i = 0; i < 8; i++) {
+          const s = document.createElement('div');
+          s.className = i % 2 === 0 ? 'zs' : 'zg';
+          s.style.cssText = 'width:12.5%;height:100%';
+          el.appendChild(s);
+        }
+      });
+    })();
+
+
+    /* ════════════════════════════════════════════════════════════════════
+       ████████████████████████████████████████████████████████████████████
+       MODULE J — PUBLIC UI HANDLERS
+       Called by onclick attributes on panel buttons.
+       ████████████████████████████████████████████████████████████████████
+    ════════════════════════════════════════════════════════════════════ */
+    const UI = (() => {
+
+      const toggleBtn = document.getElementById('toggleBtn');
+      let emerTimer = null;
+
+      function showEmerBanner(road) {
+        const el = document.getElementById('emer-alert');
+        el.textContent = `🚨 EMERGENCY — ${road} ROAD PRIORITY ACTIVE`;
+        el.style.display = 'block';
+        clearTimeout(emerTimer);
+        emerTimer = setTimeout(() => el.style.display = 'none', 9000);
+      }
+
+      /** Spawn vehicles from panel inputs */
+      function spawn() {
+        const hTotal = parseInt(document.getElementById('h_val').value) || 0;
+        const vTotal = parseInt(document.getElementById('v_val').value) || 0;
+        const emer = parseInt(document.getElementById('emer').value) || 0;
+
+        /*
+         * Split count between the two lanes on each axis.
+         * Lane 1 (W→E) gets ceil, Lane 2 (E→W) gets floor for H.
+         * Same split for V (Lanes 3 & 4).
+         */
+        const counts = {
+          1: Math.ceil(hTotal / 2),
+          2: Math.floor(hTotal / 2),
+          3: Math.ceil(vTotal / 2),
+          4: Math.floor(vTotal / 2),
+        };
+
+        if (emer >= 1 && emer <= 4 && counts[emer] === 0) {
+          counts[emer] = 1;
+        }
+
+        for (let lane = 1; lane <= 4; lane++) {
+          for (let i = 0; i < counts[lane]; i++) {
+            /* Emergency tag: first vehicle in the correct road, correct lane */
+            const isE = (emer === lane && i === 0);
+            const color = Sim.COLORS[Math.floor(Math.random() * Sim.COLORS.length)];
+            /* Stagger spawns: 900 ms between cars + small per-lane offset */
+            setTimeout(() => VehicleEngine.spawn(lane, isE, color), i * 900 + lane * 80);
+          }
+        }
+
+        /* Emergency: show banner immediately */
+        if (emer !== 0) {
+          showEmerBanner((emer === 1 || emer === 2) ? 'HORIZONTAL' : 'VERTICAL');
+          document.getElementById('emer').value = '0';
+        }
+
+      }
+
+      /** Toggle signal system on / off */
+      function toggleSignals() {
+        if (Sim.active) {
+          SignalController.stop();
+          toggleBtn.textContent = '▶ Start Signals';
+          toggleBtn.style.background = 'linear-gradient(135deg,#78350f,#d97706)';
+        } else {
+          SignalController.start();
+          toggleBtn.textContent = '■ Stop Signals';
+          toggleBtn.style.background = 'linear-gradient(135deg,#7f1d1d,#dc2626)';
+        }
+      }
+
+      /** Clear all vehicles from the map */
+      function clearAll() {
+        VehicleEngine.clearAll();
+        document.getElementById('hCount').textContent = '0 cars';
+        document.getElementById('vCount').textContent = '0 cars';
+        document.getElementById('h-bar').style.width = '0%';
+        document.getElementById('v-bar').style.width = '0%';
+      }
+
+      return { spawn, toggleSignals, clearAll };
+    })();
+  </script>
+</body>
+
+</html>
